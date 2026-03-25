@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: osticket
+  labels:
+    app: osticket
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database
+  labels:
+    app: database

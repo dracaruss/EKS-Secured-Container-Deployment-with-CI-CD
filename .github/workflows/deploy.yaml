@@ -1,0 +1,71 @@
+name: Build, Scan, and Deploy to EKS
+ 
+on:
+  push:
+    branches: [main]
+ 
+permissions:
+  id-token: write
+  contents: read
+ 
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+  EKS_CLUSTER: osticket-cluster
+ 
+jobs:
+  build-scan-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+ 
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/github-actions-eks-role
+          aws-region: ${{ env.AWS_REGION }}
+ 
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+ 
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.ECR_REGISTRY }}/osticket:${{ github.sha }} -f docker/Dockerfile docker/
+ 
+      # SECURITY: Scan image for vulnerabilities before pushing
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/osticket:${{ github.sha }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+ 
+      # SECURITY: Scan Terraform for misconfigurations
+      - name: Checkov IaC scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform/
+          soft_fail: false
+ 
+      - name: Push image to ECR
+        run: |
+          docker push ${{ env.ECR_REGISTRY }}/osticket:${{ github.sha }}
+ 
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
+ 
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -f kubernetes/namespaces.yaml
+          kubectl apply -f kubernetes/mysql-secrets.yaml
+          kubectl apply -f kubernetes/mysql-deployment.yaml
+          kubectl apply -f kubernetes/mysql-service.yaml
+          kubectl apply -f kubernetes/osticket-deployment.yaml
+          kubectl apply -f kubernetes/osticket-service.yaml
+          kubectl apply -f kubernetes/rbac.yaml
+          kubectl apply -f kubernetes/network-policies.yaml
+          kubectl set image deployment/osticket osticket=${{ env.ECR_REGISTRY }}/osticket:${{ github.sha }} -n osticket
