@@ -1,11 +1,9 @@
 # EKS Secured Container Deployment with CI/CD and Security Controls
 
-##
-
 ## Overview
 This project containerizes and deploys the osTicket web application to Amazon EKS using Terraform. It implements container image scanning, RBAC with least-privilege roles, Kubernetes network policies enforcing default-deny pod communication, and a CI/CD pipeline with integrated security scanning via Trivy and Checkov.
 
-##Architecture
+## Architecture
 
 ECR — Private container registry with immutable tags, scan-on-push, and KMS encryption  
 EKS — Managed Kubernetes cluster with 2 worker nodes across 2 AZs  
@@ -13,7 +11,7 @@ VPC — Public and private subnets; worker nodes in private subnets only
 CI/CD — GitHub Actions with OIDC federation, Trivy image scanning, Checkov IaC scanning  
 Security — Namespace isolation, RBAC (developer/db-admin/security-auditor), network policies with default-deny  
 
-##Prerequisites
+## Prerequisites
 
 - AWS account with CLI configured (aws configure or aws configure sso)  
 - Terraform >= 1.5.0  
