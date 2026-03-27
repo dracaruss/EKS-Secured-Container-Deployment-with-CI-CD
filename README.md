@@ -294,9 +294,10 @@ I checked what custom configurations had been applied on this cluster?
 The --query "addon.configurationValues" filters the response to show only the configuration:  
 ```bash
 aws eks describe-addon --addon-name vpc-cni --query "addon.configurationValues"
-			null
+
+	null
 ```  
-That meant the VPC CNI was running with pure defaults, aka no custom configuration at all. Since *enableNetworkPolicy* is off by default and no configuration was set, it wasn't enforcing anything.
+That 'null' meant the VPC CNI was running with pure defaults, aka no custom configuration at all. Since *enableNetworkPolicy* is off by default and no configuration was set, it wasn't enforcing anything.
 
 ##
 
